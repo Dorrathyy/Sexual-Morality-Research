@@ -1,0 +1,2798 @@
+---
+title: "thesis"
+output: html_document
+date: "2024-12-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Downloading data and selecting variables**
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)     
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(readxl)
+library(countrycode)
+library(foreign)
+library(haven)
+
+# Visualization
+library(ggplot2)
+library(lattice)
+library(patchwork)
+library(grid)
+
+# Missing data & imputation
+library(naniar)
+library(missForest)
+library(mi)
+library(misty)
+library(mice)
+
+# EFA/CFA and psychometrics
+library(nFactors)
+library(psych)
+library(GPArotation)
+library(lavaan)
+library(semPlot)
+library(semTools)
+
+library(lme4)
+library(car)
+library(performance)
+library(sjPlot)
+library(webshot)
+library(htmltools)
+library(stringr)
+library(rio)
+```
+
+
+```{r}
+joint <- read.spss("/Users/daragraceva/Desktop/thesis/EVS_WVS_Joint_Spss_v5_0.sav", to.data.frame=T)
+table(joint$cntry_AN)
+
+data<-joint %>% select(cntry_AN, A006, E236, F025, F118, F119, F120, F132, X025A_01, X047_WVS7, F028, D059, D078, X001, X003, X007, year)
+
+lookup <- c(cntry = "cntry_AN", imp_religion = "A006", democraticness = "E236", denomination_pers = "F025", homosexuality = "F118", prostitution = "F119", abortion = "F120", casual_sex = "F132", education = "X025A_01", income = "X047_WVS7", how_often_rel = "F028", political_leaders_men = "D059", business_executives_men = "D078", sex = "X001", age = "X003", marital_status = "X007", year = "year")
+
+data<-rename(data, all_of(lookup))
+names(data)
+summary(data)
+```
+
+<br><br>
+
+**defining the types of variables**
+
+```{r}
+# numerics
+data$democraticness <- as.numeric(data$democraticness)
+data$homosexuality <- as.numeric(data$homosexuality)
+data$abortion <- as.numeric(data$abortion)
+data$prostitution <- as.numeric(data$prostitution)
+data$casual_sex <- as.numeric(data$casual_sex)
+data$income <- as.numeric(data$income)
+data$age <- as.numeric(ifelse(data$age == "82 and older", 82, data$age))
+
+
+#factors
+data$cntry <- as.factor(data$cntry)
+data$imp_religion <- as.factor(data$imp_religion)
+data$denomination_pers <- as.factor(data$denomination_pers)
+data$education <- as.factor(data$education)
+data$how_often_rel <- as.factor(data$how_often_rel)
+data$political_leaders_men <- as.factor(data$political_leaders_men)
+data$business_executives_men <- as.factor(data$business_executives_men)
+data$marital_status <- as.factor(data$marital_status)
+data$sex <- as.factor(data$sex)
+```
+
+<br><br>
+
+# Descriptive analysis
+
+```{r}
+p1 <- ggplot(data, aes(x = age)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 40) +
+  theme_minimal() +
+  labs(title = "Distribution of Age Variable", 
+       x = "Age", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p2 <- ggplot(data, aes(x = income)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Income Variable", 
+       x = "Income", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p3 <- ggplot(data, aes(x = democraticness)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Democraticness Variable", 
+       x = "Democraticness", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p4 <- ggplot(data, aes(x = homosexuality)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Homosexuality Variable", 
+       x = "Homosexuality", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p5 <- ggplot(data, aes(x = abortion)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Abortion Variable", 
+       x = "Abortion", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p6 <- ggplot(data, aes(x = casual_sex)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Casual Sex Variable", 
+       x = "Casual Sex", 
+       y = "Count")
+
+```
+
+<br>
+
+```{r}
+p7 <- ggplot(data, aes(x = prostitution)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Prostitution Variable", 
+       x = "Prostitution", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p8 <- ggplot(data, aes(x = imp_religion)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Importance of Religion Variable", 
+       x = "Importance of Religion", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p9 <- ggplot(data, aes(x = denomination_pers)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Personal Denomination Variable", 
+       x = "Personal Denomination", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+summary(data$how_often_rel)
+data$how_often_rel <- droplevels(data$how_often_rel)
+
+p10 <- ggplot(data, aes(x = how_often_rel)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Religious Services Attendance Variable", 
+       x = "Religious Services Attendance", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p11 <- ggplot(data, aes(x = education)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Education Variable", 
+       x = "Education", 
+       y = "Count")
+```
+
+<br>
+
+```{r}
+p12 <- ggplot(data, aes(x = political_leaders_men)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of 'Men Make Better Political Leaders' Variable", 
+       x = "Men Make Better Political Leaders", 
+       y = "Count")
+```
+
+<br>  
+
+```{r}
+p13 <- ggplot(data, aes(x = business_executives_men)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of 'Men Make Better Business Executives' Variable", 
+       x = "Men Make Better Business Executives", 
+       y = "Count")
+```
+
+<br> 
+
+```{r}
+p14 <- ggplot(data, aes(x = marital_status)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Marital Status Variable", 
+       x = "Marital Status", 
+       y = "Count")
+```
+
+<br> 
+
+```{r}
+p15 <- ggplot(data, aes(x = sex)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Sex Variable", 
+       x = "Sex", 
+       y = "Count")
+```
+
+<br> <br> 
+
+# Dealing with missingness
+
+```{r}
+summary(data)
+```
+
+<br><br>
+
+```{r}
+row1 <- p1 | p2 | p3
+row2 <- p4 | p5 | p6
+row3 <- p7 | p8 | p9
+row4 <- p10 | p11 | p12
+row5 <- p13 | p14 | p15
+
+full_plot <- row1 / row2 / row3 / row4 / row5
+
+ggsave("all_distributions.png", plot = full_plot, 
+       width = 16, height = 20, dpi = 300)
+```
+
+<br><br>
+
+### The pattern of missingness:
+
+<br><br>
+
+The 'mi' package cannot deal with such big datasets, so I will create a loop that goes through each country separately and then creates a visualisation of overall missingness pattern:
+
+
+```{r}
+data_new <- data %>%
+  mutate(cntry = as.character(cntry))
+
+missing_summary <- data_new %>%
+  group_by(cntry) %>%
+  summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+  pivot_longer(-cntry, names_to = "Variable", values_to = "Missing_Percentage")
+
+missings_plot <- ggplot(missing_summary, aes(x = Variable, y = cntry, fill = Missing_Percentage)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "red", name = "Missing %") +
+  theme_minimal() +
+  labs(title = "Missing Data Heatmap by Country & Variable",
+       x = "Variable",
+       y = "Country") +
+  theme(axis.text.y = element_text(size = 10),
+      axis.text.x = element_text(size = 10, angle = 45, hjust = 1))
+
+missing_summary <- missing_summary %>%
+  group_by(cntry) %>%
+  summarize(total_missing = sum(Missing_Percentage)) %>%
+  arrange(desc(total_missing)) %>%
+  inner_join(missing_summary, by = "cntry")
+```
+
+<br>
+
+```{r}
+ggsave("missing_data_heatmap.png", plot = missings_plot, width = 12, height = 10, dpi = 300)
+```
+
+<br><br>
+
+I will also include the analysis of missingness, that samples the data, taking 200 observations from each country:
+
+```{r}
+data_new1 <- data %>%
+  mutate(cntry = as.character(cntry))  
+
+data_sample <- data_new1 %>%
+  group_by(cntry) %>%
+  sample_n(size = min(200, n()), replace = FALSE) %>%
+  ungroup()
+
+mdf_sample <- missing_data.frame(as.data.frame(data_sample))  
+show (mdf_sample)
+
+summary(mdf_sample)
+par(mar = c(4, 4, 2, 2)) 
+image(mdf_sample)
+hist(mdf_sample)
+```
+
+<br><br>
+
+**MCAR?**
+```{r message=FALSE, warning=FALSE}
+na_test_result <- na.test(data)  # null hypothesis - it is MCAR
+na_test_result
+na_test_text <- capture.output(na_test_result)
+png("na_test_result.png", width = 1200, height = 800)
+grid.text(na_test_text, gp = gpar(fontsize = 14))
+
+dev.off()
+```
+
+<br><br>
+
+**What countries have variables that are completely missing?**
+```{r}
+fully_missing <- data %>%
+  group_by(cntry) %>%
+  summarise(across(everything(), ~ all(is.na(.))))  
+
+missing_vars <- fully_missing %>%
+  pivot_longer(-cntry, names_to = "Variable", values_to = "Completely_Missing") %>%
+  filter(Completely_Missing == TRUE)
+
+print(missing_vars)  
+```
+
+<br><br>
+
+```{r}
+data$cntry <- as.character(data$cntry)
+
+data$cntry <- str_trim(data$cntry)
+
+countries_to_remove <- c("EG", "IQ", "IR", "JO", "LB", "TJ", "UZ")
+
+data_filtered <- data %>% 
+  filter(!cntry %in% countries_to_remove)
+
+
+print(unique(data_filtered$cntry))
+
+print(dim(data))          
+print(dim(data_filtered)) 
+data_filtered$cntry <- as.factor(data_filtered$cntry)
+summary(data_filtered)
+```
+
+<br><br>
+
+Creating a data set with no income variable (to test economic hypothesis separately with fewer countries). 
+```{r}
+data_no_income <- data_filtered %>% select(-income)
+data_no_income$cntry <- as.factor(data_no_income$cntry)
+summary(data_no_income$cntry)
+print(unique(data_no_income$cntry))
+```
+
+<br><br>
+
+Deleting countries with fully missing income:
+
+```{r}
+fully_missing_countries <- data_filtered %>%
+  group_by(cntry) %>%
+  summarise(income_missing = all(is.na(income))) %>%
+  filter(income_missing) %>%
+  pull(cntry)
+
+print(fully_missing_countries)
+
+data_filtered$cntry <- str_trim(as.character(data_filtered$cntry))
+
+countries_to_remove1 <- c("AL", "AT", "AZ", "BA", "BG", "BY", "CH", "DK", "EE", "ES", "FI", "FR", 
+                             "GE", "HR", "HU", "IS", "IT", "LT", "LV", "ME", "MK", "NO", "PL", "PT", "SE", "SI")
+
+data_filtered1 <- data_filtered %>%
+  filter(!cntry %in% countries_to_remove1)
+
+data_filtered1$cntry <- as.factor(data_filtered1$cntry)
+
+print(unique(data_filtered1$cntry))
+print(dim(data_filtered)) 
+print(dim(data_filtered1))
+
+
+data_filtered1 %>%
+  group_by(cntry) %>%
+  summarise(all_missing = all(is.na(income))) %>%
+  filter(all_missing)  
+```
+
+<br> <br> 
+
+## Imputation for data_no_income
+
+```{r}
+#library(mice)
+#library(stringr)
+
+#set.seed(123)
+
+#data_no_income$cntry <- as.character(data_no_income$cntry)
+
+#split <- split(data_no_income, data_no_income$cntry)
+
+#split <- split[sapply(split, nrow) > 0]
+
+#imputed <- lapply(split, function(country_data) {
+  #tryCatch({
+    #data_to_impute <- country_data %>% select(-cntry)
+
+    #data_to_impute <- data_to_impute %>%
+      #mutate(across(where(is.character), as.factor))
+
+    #mice_result <- mice(data_to_impute, m = 1, maxit = 5, method = "pmm", printFlag = FALSE)
+
+    #completed_data <- complete(mice_result, 1)
+
+    #data_imputed <- cbind(cntry = country_data$cntry, completed_data)
+
+    #return(data_imputed)
+  #}, error = function(e) {
+   # message("Error processing country: ", unique(country_data$cntry))
+    #message("Error message: ", e$message)
+    #return(NULL)
+ # })
+#})
+
+#data_clean_no_inc <- Filter(Negate(is.null), imputed)
+
+#data_clean_no_inc <- bind_rows(data_clean_no_inc)
+
+#data_clean_no_inc$cntry <- as.factor(data_clean_no_inc$cntry)
+
+#print(unique(data_clean_no_inc$cntry))
+#summary(data_clean_no_inc)
+#head(data_clean_no_inc)
+
+# Imputation diagnostics
+#sapply(data_clean_no_inc, function(x) sum(is.na(x)))
+#str(data_clean_no_inc)
+#lapply(data_clean_no_inc[sapply(data_clean_no_inc, is.factor)], table)
+```
+
+<br> <br> 
+
+Saving this data to the laptop
+```{r}
+#file_path <- "/Users/daragraceva/Desktop/thesis/clean_data/data_clean_no_inc.sav"
+
+#export(data_clean_no_inc, file_path)
+
+#cat("Data has been saved to:", file_path)
+```
+
+<br>
+
+# To make the knitting faster
+```{r}
+data_clean_no_inc <- read.spss("/Users/daragraceva/Desktop/thesis/clean_data/data_clean_no_inc.sav", to.data.frame=T)
+print(unique(data_clean_no_inc$cntry))
+```
+
+<br> <br> 
+
+# Imputation for economic data set (data_filtered1)
+
+```{r}
+#set.seed(123)
+
+#data_filtered1$cntry <- as.character(data_filtered1$cntry)
+
+#split1 <- split(data_filtered1, data_filtered1$cntry)
+
+#split1 <- split1[sapply(split1, nrow) > 0]
+
+#imputed1 <- lapply(split1, function(country_data) {
+  #tryCatch({
+    #data_to_impute1 <- country_data %>% select(-cntry)
+    
+    #data_to_impute1 <- data_to_impute1 %>%
+     # mutate(across(where(is.character), as.factor))
+    
+    #mice_result1 <- mice(data_to_impute1, m = 1, maxit = 5, method = "pmm", printFlag = FALSE)
+    
+    #completed_data1 <- complete(mice_result1, 1)
+    
+    #data_imputed1 <- cbind(cntry = country_data$cntry, completed_data1)
+    
+    #return(data_imputed1)
+  #}, #error = function(e) {
+   # message("Error processing country: ", unique(country_data$cntry))
+    #message("Error message: ", e$message)
+    #return(NULL)
+  #})
+#})
+
+#data_clean_with_inc <- Filter(Negate(is.null), imputed1)
+
+#data_clean_with_inc <- bind_rows(data_clean_with_inc)
+
+#data_clean_with_inc$cntry <- as.factor(data_clean_with_inc$cntry)
+
+#print(unique(data_clean_with_inc$cntry))
+#summary(data_clean_with_inc)
+#head(data_clean_with_inc)
+
+# Imputation diagnostics
+#sapply(data_clean_with_inc, function(x) sum(is.na(x)))
+#str(data_clean_with_inc)
+#lapply(data_clean_with_inc[sapply(data_clean_with_inc, is.factor)], table)
+```
+
+<br> <br> 
+
+Saving this data to the laptop
+```{r}
+#file_path <- "/Users/daragraceva/Desktop/thesis/clean_data/data_clean_with_inc.sav"
+
+#export(data_clean_with_inc, file_path)
+
+#cat("Data has been saved to:", file_path)
+```
+
+<br> <br> 
+
+# To make the knitting faster
+```{r}
+data_clean_with_inc <- read.spss("/Users/daragraceva/Desktop/thesis/clean_data/data_clean_with_inc.sav", to.data.frame=T)
+print(unique(data_clean_with_inc$cntry))
+```
+
+<br> <br> 
+
+# Enriching the dataset with additional variables (data_clean_no_inc)
+
+<br> 
+
+## Predominant_religion
+```{r}
+predominant_religion <- data_clean_no_inc %>%
+  group_by(cntry, denomination_pers) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(cntry) %>%
+  slice_max(order_by = count, n = 1, with_ties = FALSE) %>%
+  arrange(cntry) %>%
+  select(cntry, predominant_religion = denomination_pers)
+
+data_clean_no_inc <- data_clean_no_inc %>%
+  left_join(predominant_religion, by = "cntry")
+
+print(head(data_clean_no_inc))
+```
+
+```{r}
+predominant_religion1 <- data_clean_with_inc %>%
+  group_by(cntry, denomination_pers) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(cntry) %>%
+  slice_max(order_by = count, n = 1, with_ties = FALSE) %>%
+  arrange(cntry) %>%
+  select(cntry, predominant_religion1 = denomination_pers)
+
+data_clean_with_inc <- data_clean_with_inc %>%
+  left_join(predominant_religion1, by = "cntry")
+
+print(head(data_clean_with_inc))
+```
+
+<br> <br> 
+
+## Religiosity on the country level (The average level of religiousness in a respondent’s country)
+
+```{r}
+data_clean_no_inc <- data_clean_no_inc %>%
+  mutate(religiosity_numeric = case_when(
+    imp_religion == "Very important" ~ 4,
+    imp_religion == "Rather important" ~ 3,
+    imp_religion == "Not very important" ~ 2,
+    imp_religion == "Not at all important" ~ 1,
+    TRUE ~ NA_real_
+  ))
+
+table(data_clean_no_inc$religiosity_numeric, useNA = "always")
+table(data_clean_no_inc$imp_religion, data_clean_no_inc$religiosity_numeric, useNA = "always")
+
+mean_religiosity1 <- data_clean_no_inc %>%
+  group_by(cntry) %>%
+  summarise(country_religiosity = mean(religiosity_numeric, na.rm = TRUE), .groups = "drop") 
+
+data_clean_no_inc <- data_clean_no_inc %>%
+  left_join(mean_religiosity1, by = "cntry")
+
+data_clean_no_inc <- select(data_clean_no_inc, -religiosity_numeric)
+print(head(data_clean_no_inc))
+```
+
+<br> 
+
+```{r}
+data_clean_with_inc <- data_clean_with_inc %>%
+  mutate(religiosity_numeric = case_when(
+    imp_religion == "Very important" ~ 4,
+    imp_religion == "Rather important" ~ 3,
+    imp_religion == "Not very important" ~ 2,
+    imp_religion == "Not at all important" ~ 1,
+    TRUE ~ NA_real_
+  ))
+
+table(data_clean_with_inc$religiosity_numeric, useNA = "always")
+
+mean_religiosity2 <- data_clean_with_inc %>%
+  group_by(cntry) %>%
+  summarise(country_religiosity = mean(religiosity_numeric, na.rm = TRUE), .groups = "drop") %>%
+  mutate(religiosity_centered = scale(country_religiosity, center = TRUE, scale = FALSE))
+
+data_clean_with_inc <- data_clean_with_inc %>%
+  left_join(mean_religiosity2, by = "cntry")
+
+data_clean_with_inc <- select(data_clean_with_inc, -religiosity_numeric)
+print(head(data_clean_with_inc))
+```
+
+<br> 
+
+## Average sexism score
+
+**The higher the number the higher is the sexism level**
+
+```{r}
+recode_sexism <- function(x) {
+  recode_vec <- c(
+    "Strongly disagree" = 1,
+    "Disagree" = 2,
+    "Agree" = 3,
+    "Agree strongly" = 4
+  )
+  as.numeric(recode_vec[as.character(x)])
+}
+
+data_clean_no_inc <- data_clean_no_inc %>%
+  mutate(
+    political_leaders_men_num = recode_sexism(political_leaders_men),
+    business_executives_men_num = recode_sexism(business_executives_men),
+    sexism_score = rowMeans(
+      cbind(political_leaders_men_num, business_executives_men_num),
+      na.rm = TRUE
+    )
+  )
+
+data_clean_no_inc <- select(data_clean_no_inc, -political_leaders_men_num, -business_executives_men_num)
+print(head(data_clean_no_inc))
+```
+<br> 
+
+```{r}
+recode_sexism <- function(x) {
+  recode_vec <- c(
+    "Strongly disagree" = 1,
+    "Disagree" = 2,
+    "Agree" = 3,
+    "Agree strongly" = 4
+  )
+  as.numeric(recode_vec[as.character(x)])
+}
+
+data_clean_with_inc <- data_clean_with_inc %>%
+  mutate(
+    political_leaders_men_num = recode_sexism(political_leaders_men),
+    business_executives_men_num = recode_sexism(business_executives_men),
+    sexism_score = rowMeans(
+      cbind(political_leaders_men_num, business_executives_men_num),
+      na.rm = TRUE
+    )
+  )
+
+data_clean_with_inc <- select(data_clean_with_inc, -political_leaders_men_num, -business_executives_men_num)
+print(head(data_clean_with_inc))
+```
+
+<br> <br> 
+
+## Gender parity
+
+```{r}
+print(unique(data_clean_no_inc$cntry))
+
+gender_parity_scores <- data.frame(
+  cntry = c("AD", "AL", "AM", "AR", "AT", "AU", "AZ", "BA", "BD", "BG", 
+            "BO", "BR", "BY", "CA", "CH", "CL", "CN", "CO", "CY", "CZ", 
+            "DE", "DK", "EC", "EE", "ES", "ET", "FI", "FR", "GB", "GE", 
+            "GR", "GT", "HK", "HR", "HU", "ID", "IN", "IS", "IT", "JP", 
+            "KE", "KG", "KR", "KZ", "LT", "LV", "LY", "MA", "ME", "MK", 
+            "MM", "MN", "MO", "MV", "MX", "MY", "NG", "NI", "NIR", "NL", 
+            "NO", "NZ", "PE", "PH", "PK", "PL", "PR", "PT", "RO", "RS", 
+            "RU", "SE", "SG", "SI", "SK", "TH", "TN", "TR", "TW", "UA", 
+            "US", "UY", "VE", "VN", "ZW"),
+  gender_parity = c(NA, NA, 0.698, NA, 0.781, 0.738, 0.687, 0.710, 0.714, 0.740,
+                    0.734, 0.696, 0.750, 0.772, 0.795, 0.736, 0.682, 0.710, 0.696, 0.710,
+                    0.801, 0.764, 0.743, 0.733, 0.788, 0.710, 0.860, 0.791, 0.780, 0.731,
+                    0.695, NA, NA, NA, 0.699, 0.697, 0.629, 0.968, 0.720, 0.650,
+                    0.729, NA, 0.689, 0.719, 0.798, 0.771, NA, NA, 0.732, NA,
+                    NA, 0.715, NA, NA, 0.764, 0.681, 0.639, 0.810, NA, 0.767,
+                    0.845, 0.841, 0.750, 0.783, 0.564, 0.709, NA, 0.768, 0.698,
+                    0.779, NA, 0.822, 0.734, NA, 0.710, 0.709, NA, 0.639, NA,
+                    0.707, 0.769, 0.711, NA, 0.705, 0.734)
+)
+
+data_clean_no_inc <- left_join(data_clean_no_inc, gender_parity_scores, by = "cntry")
+
+unmatched_in_your_data <- data_clean_no_inc %>% 
+  filter(!cntry %in% gender_parity_scores$cntry) %>% 
+  distinct(cntry)
+
+unmatched_scores <- gender_parity_scores %>% 
+  filter(is.na(gender_parity)) %>% 
+  distinct(cntry)
+
+if(nrow(unmatched_in_your_data) > 0) {
+  message("Countries not in the filtered list: ", 
+          paste(unmatched_in_your_data$cntry, collapse = ", "))
+}
+
+if(nrow(unmatched_scores) > 0) {
+  message("Countries without gender parity scores: ", 
+          paste(unmatched_scores$cntry, collapse = ", "))
+}
+
+summary(data_clean_no_inc$gender_parity)
+```
+countries that were not covered by the report: AD, AL, AR, GT, HK, HR, KG, LY, MA, MK, MM, MO, MV, NIR, PR, RU, SI, TN, TW, VE (85-20 -> 65)
+
+<br> <br>
+
+**Filling out missing countries via aggregating personal-level sexism**
+```{r}
+country_sexism <- data_clean_no_inc %>%
+  group_by(cntry) %>%
+  summarise(mean_sexism = mean(sexism_score, na.rm = TRUE)) %>%
+  ungroup()
+
+country_data <- country_sexism %>%
+  left_join(gender_parity_scores, by = "cntry")
+
+lm_model <- lm(gender_parity ~ mean_sexism, data = country_data %>% filter(!is.na(gender_parity)))
+
+country_data <- country_data %>%
+  mutate(gender_parity = ifelse(
+    is.na(gender_parity),
+    predict(lm_model, newdata = country_data),
+    gender_parity
+  )) %>%
+  select(cntry, gender_parity)  
+
+data_clean_no_inc <- data_clean_no_inc %>%
+  select(-starts_with("gender_parity")) %>%  
+  left_join(country_data, by = "cntry")       
+
+summary(data_clean_no_inc$gender_parity)
+print(head(data_clean_no_inc))
+```
+
+<br> <br>
+
+```{r}
+print(unique(data_clean_with_inc$cntry))
+
+gender_parity_scores1 <- data.frame(
+  cntry1 = c("AD", "AM", "AR", "AU", "BD", "BO", "BR", "CA", "CL", "CN", 
+             "CO", "CY", "CZ", "DE", "EC", "ET", "GB", "GR", "GT", "HK",
+             "ID", "IN", "JP", "KE", "KG", "KR", "KZ", "LY", "MA", "MM",
+             "MN", "MO", "MV", "MX", "MY", "NG", "NI", "NIR", "NL", "NZ",
+             "PE", "PH", "PK", "PR", "RO", "RS", "RU", "SG", "SK", "TH",
+             "TN", "TR", "TW", "UA", "US", "UY", "VE", "VN", "ZW"),
+  gender_parity1 = c(NA, 0.698, NA, 0.738, 0.714, 0.734, 0.696, 0.772, 0.736, 0.682,
+                    0.710, 0.696, 0.710, 0.801, 0.743, 0.710, 0.780, 0.695, NA, NA,
+                    0.697, 0.629, 0.650, 0.729, NA, 0.689, 0.719, NA, NA, NA,
+                    0.715, NA, NA, 0.764, 0.681, 0.639, 0.810, NA, 0.767, 0.841,
+                    0.750, 0.783, 0.564, NA, 0.698, 0.779, NA, 0.734, 0.710, 0.709,
+                    NA, 0.639, NA, 0.707, 0.769, 0.711, NA, 0.705, 0.734)
+)
+
+data_clean_with_inc <- left_join(data_clean_with_inc, gender_parity_scores1, by = c("cntry" = "cntry1"))
+
+unmatched1 <- data_clean_with_inc %>% 
+  filter(!cntry %in% gender_parity_scores1$cntry1) %>% 
+  distinct(cntry)
+
+unmatched_scores1 <- gender_parity_scores1 %>% 
+  filter(is.na(gender_parity1)) %>% 
+  distinct(cntry1)
+
+if(nrow(unmatched_scores1) > 0) {
+  message("Countries in scores without values: ", 
+          paste(unmatched_scores1$cntry1, collapse = ", "))
+}
+
+summary(data_clean_with_inc$gender_parity1)
+```
+<br> 
+
+Countries that were not filled in: AD, AR, GT, HK, KG, LY, MA, MM, MO, MV, NIR, PR, RU, TN, TW, VE
+
+```{r}
+country_sexism <- data_clean_with_inc %>%
+  group_by(cntry) %>%
+  summarise(mean_sexism = mean(sexism_score, na.rm = TRUE)) %>%
+  ungroup()
+
+country_data <- country_sexism %>%
+  left_join(gender_parity_scores, by = "cntry")
+
+lm_model <- lm(gender_parity ~ mean_sexism, data = country_data %>% filter(!is.na(gender_parity)))
+
+country_data <- country_data %>%
+  mutate(gender_parity = ifelse(
+    is.na(gender_parity),
+    predict(lm_model, newdata = country_data),
+    gender_parity
+  )) %>%
+  select(cntry, gender_parity)  
+
+data_clean_with_inc <- data_clean_with_inc %>%
+  select(-starts_with("gender_parity")) %>%  
+  left_join(country_data, by = "cntry")       
+
+summary(data_clean_with_inc$gender_parity)
+print(head(data_clean_with_inc))
+```
+
+<br> <br> 
+
+## Freedom index
+
+```{r}
+regime_values <- c(
+  AD = "Full democracy", AL = "Flawed democracy", AM = "Hybrid regime", AR = "Flawed democracy",
+  AT = "Full democracy", AU = "Full democracy", AZ = "Authoritarian", BA = "Hybrid regime",
+  BD = "Hybrid regime", BG = "Flawed democracy", BO = "Hybrid regime", BR = "Flawed democracy",
+  BY = "Authoritarian", CA = "Full democracy", CH = "Full democracy", CL = "Flawed democracy",
+  CN = "Authoritarian", CO = "Flawed democracy", CY = "Flawed democracy", CZ = "Flawed democracy",
+  DE = "Full democracy", DK = "Full democracy", EC = "Hybrid regime", EE = "Flawed democracy",
+  ES = "Full democracy", ET = "Authoritarian", FI = "Full democracy", FR = "Full democracy",
+  GB = "Full democracy", GE = "Hybrid regime", GR = "Full democracy", GT = "Hybrid regime",
+  HK = "Hybrid regime", HR = "Flawed democracy", HU = "Flawed democracy", ID = "Flawed democracy",
+  IN = "Flawed democracy", IS = "Full democracy", IT = "Flawed democracy", JP = "Full democracy",
+  KE = "Hybrid regime", KG = "Authoritarian", KR = "Full democracy", KZ = "Authoritarian",
+  LT = "Flawed democracy", LV = "Flawed democracy", LY = "Authoritarian", MA = "Hybrid regime",
+  ME = "Flawed democracy", MK = "Flawed democracy", MM = "Authoritarian", MN = "Flawed democracy",
+  MO = "Authoritarian", MV = "Flawed democracy", MX = "Hybrid regime", MY = "Flawed democracy",
+  NG = "Hybrid regime", NI = "Authoritarian", NIR = "Full democracy", NL = "Full democracy",
+  NO = "Full democracy", NZ = "Full democracy", PE = "Hybrid regime", PH = "Flawed democracy",
+  PK = "Authoritarian", PL = "Flawed democracy", PR = "Flawed democracy", PT = "Flawed democracy",
+  RO = "Flawed democracy", RS = "Flawed democracy", RU = "Authoritarian", SE = "Full democracy",
+  SG = "Flawed democracy", SI = "Flawed democracy", SK = "Flawed democracy", TH = "Flawed democracy",
+  TN = "Hybrid regime", TR = "Hybrid regime", TW = "Full democracy", UA = "Full democracy",
+  US = "Flawed democracy", UY = "Full democracy", VE = "Authoritarian", VN = "Authoritarian",
+  ZW = "Authoritarian"
+)
+
+data_clean_no_inc$regime <- regime_values[data_clean_no_inc$cntry]
+
+data_clean_no_inc$regime <- factor(data_clean_no_inc$regime, levels = c(
+  "Authoritarian", "Hybrid regime", "Flawed democracy", "Full democracy"
+))
+
+print(head(data_clean_no_inc))
+```
+
+<br> <br>
+
+```{r}
+print(unique(data_clean_with_inc$cntry))
+regime_values1 <- c(
+  AD = "Full democracy", AM = "Hybrid regime", AR = "Flawed democracy",
+  AU = "Full democracy", 
+  BD = "Hybrid regime", BO = "Hybrid regime", BR = "Flawed democracy",
+  CA = "Full democracy", CL = "Flawed democracy",
+  CN = "Authoritarian", CO = "Flawed democracy", CY = "Flawed democracy", CZ = "Flawed democracy",
+  DE = "Full democracy", EC = "Hybrid regime",
+  ET = "Authoritarian", 
+  GB = "Full democracy", GR = "Full democracy", GT = "Hybrid regime",
+  HK = "Hybrid regime", ID = "Flawed democracy",
+  IN = "Flawed democracy", JP = "Full democracy",
+  KE = "Hybrid regime", KG = "Authoritarian", KR = "Full democracy", KZ = "Authoritarian",
+  LY = "Authoritarian", MA = "Hybrid regime",
+  MM = "Authoritarian", MN = "Flawed democracy",
+  MO = "Authoritarian", MV = "Flawed democracy", MX = "Hybrid regime", MY = "Flawed democracy",
+  NG = "Hybrid regime", NI = "Authoritarian", NIR = "Full democracy", NL = "Full democracy",
+  NZ = "Full democracy", PE = "Hybrid regime", PH = "Flawed democracy",
+  PK = "Authoritarian", PR = "Flawed democracy", 
+  RO = "Flawed democracy", RS = "Flawed democracy", RU = "Authoritarian", 
+  SG = "Flawed democracy", SK = "Flawed democracy", TH = "Flawed democracy",
+  TN = "Hybrid regime", TR = "Hybrid regime", TW = "Full democracy", UA = "Full democracy",
+  US = "Flawed democracy", UY = "Full democracy", VE = "Authoritarian", VN = "Authoritarian",
+  ZW = "Authoritarian"
+)
+
+data_clean_with_inc$regime <- regime_values1[data_clean_with_inc$cntry]
+
+data_clean_with_inc$regime <- factor(data_clean_with_inc$regime, levels = c(
+  "Authoritarian", "Hybrid regime", "Flawed democracy", "Full democracy"
+))
+
+print(head(data_clean_with_inc))
+```
+
+<br> <br> 
+
+## CSE
+
+
+```{r}
+print(unique(data_clean_no_inc$cntry))
+
+country_values <- c(
+  AD = NA, AL = 4, AM = 2, AR = 3, AT = 4, AU = NA, AZ = 2, BA = 3, BD = 4, BG = 3,
+  BO = 2, BR = 1, BY = 2, CA = NA, CH = 4, CL = 4, CN = 3, CO = 4, CY = 4, CZ = 4,
+  DE = 4, DK = NA, EC = 4, EE = 4, ES = 4, ET = 2, FI = 4, FR = NA, GB = 4, GE = 1,
+  GR = NA, GT = 3, HK = 3, HR = NA, HU = NA, ID = 4, IN = 3, IS = 2, IT = NA, JP = 1,
+  KE = 4, KG = 3, KR = 1, KZ = 3, LT = 2, LV = 4, LY = 1, MA = 3, ME = 1, MK = 1,
+  MM = 4, MN = 4, MO = NA, MV = 4, MX = 4, MY = 4, NG = 4, NI = 3, NIR = 4, NL = 4,
+  NO = NA, NZ = 2, PE = 4, PH = 4, PK = 4, PL = 1, PR = NA, PT = NA, RO = NA, RS = 2,
+  RU = 1,  # special case: curriculum but no law
+  SE = 4, SG = 2, SI = NA, SK = NA, TH = 4, TN = 2, TR = NA, TW = NA, UA = 4,
+  US = NA, UY = 4, VE = 3, VN = 3, ZW = 4
+)
+
+data_clean_no_inc$cse <- country_values[data_clean_no_inc$cntry]
+
+data_clean_no_inc$cse <- factor(data_clean_no_inc$cse, levels = 1:4, labels = c(
+  "Not on the law level",
+  "On the law level",
+  "Law and curriculum",
+  "Law and mandatory curriculum"
+))
+
+summary(data_clean_no_inc$cse)
+```
+
+```{r}
+print(unique(data_clean_with_inc$cntry))
+
+country_values1 <- c(
+  AD = NA, AM = 2, AR = 3, AU = NA, BD = 4,
+  BO = 2, BR = 1, CA = NA, CL = 4, CN = 3, CO = 4, CY = 4, CZ = 4,
+  DE = 4, EC = 4, ET = 2, GB = 4,
+  GR = NA, GT = 3, HK = 3, ID = 4, IN = 3, JP = 1,
+  KE = 4, KG = 3, KR = 1, KZ = 3, LY = 1, MA = 3,
+  MM = 4, MN = 4, MO = NA, MV = 4, MX = 4, MY = 4, NG = 4, NI = 3, NIR = 4, NL = 4,
+  NZ = 2, PE = 4, PH = 4, PK = 4, PR = NA, RO = NA, RS = 2,
+  RU = 1,  
+  SG = 2, SK = NA, TH = 4, TN = 2, TR = NA, TW = NA, UA = 4,
+  US = NA, UY = 4, VE = 3, VN = 3, ZW = 4
+)
+
+data_clean_with_inc$cse <- country_values1[data_clean_with_inc$cntry]
+
+data_clean_with_inc$cse <- factor(data_clean_with_inc$cse, levels = 1:4, labels = c(
+  "Not on the law level",
+  "On the law level",
+  "Law and curriculum",
+  "Law and mandatory curriculum"
+))
+
+summary(data_clean_with_inc$cse)
+```
+
+<br><br>
+
+## GDP
+
+<br><br>
+
+```{r}
+gdp_raw <- read_excel("/Users/daragraceva/Downloads/P_world bank gdp(1).xlsx")
+
+names(gdp_raw) <- names(gdp_raw) %>%
+  str_replace_all("\\[.*\\]", "") %>%  
+  str_replace_all(" ", "")             
+
+gdp_clean <- gdp_raw %>%
+  select(CountryName, CountryCode, '2017', '2018', '2019', '2020', '2021', '2022', '2023') %>%
+  rename(
+    country_name = CountryName,
+    code_3 = CountryCode
+  )
+
+gdp_long <- gdp_clean %>%
+  pivot_longer(
+    cols = '2017':'2023',
+    names_to = "year",
+    values_to = "gdp_ppp"
+  ) %>%
+  mutate(year = as.integer(year))
+
+summary(data_clean_cse2$gdp_ppp)
+```
+
+```{r}
+data_clean_with_inc <- data_clean_with_inc %>%
+  filter(trimws(as.character(cntry)) != "NIR")
+
+data_clean_with_inc <- data_clean_with_inc %>%
+  filter(trimws(as.character(cntry)) != "TW")
+
+data_clean_with_inc <- data_clean_with_inc %>%
+  mutate(
+    iso3c = countrycode(cntry, origin = "iso2c", destination = "iso3c")
+  )
+
+print(unique(data_clean_with_inc$cntry))
+```
+
+
+```{r}
+data_clean_with_inc <- data_clean_with_inc %>%
+  mutate(year = as.integer(as.character(year)))
+
+gdp_long <- gdp_long %>%
+  mutate(year = as.integer(year))
+
+data_clean_with_inc <- data_clean_with_inc %>%
+  left_join(gdp_long, by = c("iso3c" = "code_3", "year" = "year"))
+
+sum(is.na(data_clean_with_inc$gdp_ppp))
+sum(is.na(data_clean_with_inc$income))
+
+data_clean_with_inc %>%
+  filter(is.na(gdp_ppp)) %>%
+  distinct(cntry, iso3c, year)
+```
+
+<br><br>
+
+**Z-scores for  GDP**
+```{r}
+data_clean_with_inc$income <- as.numeric(data_clean_with_inc$income)
+
+str(data_clean_with_inc$gdp_ppp)
+unique(data_clean_with_inc$gdp_ppp[!grepl("^\\d+$", data_clean_with_inc$gdp_ppp)])
+data_clean_with_inc <- data_clean_with_inc %>%
+  filter(gdp_ppp != "..")
+data_clean_with_inc$gdp_ppp <- gsub("[^0-9.]", "", data_clean_with_inc$gdp_ppp)
+data_clean_with_inc$gdp_ppp <- as.numeric(data_clean_with_inc$gdp_ppp)
+data_clean_with_inc$gdp_ppp_z <- scale(data_clean_with_inc$gdp_ppp)
+```
+
+<br> <br>
+
+CSE has some countries with NA values, which cannot be filled. So, these countries need to be deleted for its addition in the model
+
+```{r}
+data_clean_cse1 <- data_clean_no_inc %>%
+  filter(!(cntry %in% c("AD", "AU", "CA", "DK", "FR", "GR", "HR", "HU", 
+                         "IT", "MO", "NO", "PR", "PT", "RO", "SI", "SK", 
+                         "TR", "TW", "US") & 
+           is.na(cse)))
+
+sum(is.na(data_clean_cse1))
+```
+
+```{r}
+data_clean_cse2 <- data_clean_with_inc %>%
+  filter(!(cntry %in% c("AD", "AU", "CA", "GR", "MO", "PR", "RO", "SK", 
+                         "TR", "TW", "US") & 
+           is.na(cse)))
+
+sum(is.na(data_clean_cse2))
+```
+
+<br><br>
+
+# Distributions of cleaned individual-level variables
+
+```{r}
+p1 <- ggplot(data_clean_cse1, aes(x = age)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 10) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Age Variable", 
+       x = "Age", 
+       y = "Percentage")
+
+p1
+```
+
+<br>
+
+```{r}
+p2 <- ggplot(data_clean_cse2, aes(x = income)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 10) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Income Variable", 
+       x = "Income", 
+       y = "Percentage")
+
+p2
+```
+
+```{r}
+p3 <- ggplot(data_clean_cse1, aes(x = democraticness)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 10) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Perception of Democraticness Variable", 
+       x = "Perception of Democraticness", 
+       y = "Percentage")
+
+p3
+```
+
+```{r}
+p4 <- ggplot(data_clean_cse1, aes(x = homosexuality)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 10) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Justification of Homosexuality Variable", 
+       x = "Justification of Homosexuality", 
+       y = "Percentage")
+
+p4
+```
+
+
+```{r}
+p5 <- ggplot(data_clean_cse1, aes(x = abortion)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 10) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Justification of Abortion Variable", 
+       x = "Justification of Abortion", 
+       y = "Percentage")
+
+p5
+```
+
+```{r}
+p6 <- ggplot(data_clean_cse1, aes(x = casual_sex)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 10) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Justification of Casual Sex Variable", 
+       x = "Justification of Casual Sex", 
+       y = "Percentage")
+
+p6
+```
+
+```{r}
+p7 <- ggplot(data_clean_cse1, aes(x = prostitution)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 10) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 10) +
+  theme_minimal() +
+  labs(title = "Distribution of Justification of Prostitution Variable", 
+       x = "Justification of Prostitution", 
+       y = "Percentage")
+
+p7
+```
+
+```{r}
+means <- sapply(data[, c("homosexuality", "abortion", "casual_sex", "prostitution")], mean, na.rm = TRUE)
+print(means)
+```
+
+```{r}
+p8 <- ggplot(data_clean_cse1, aes(x = imp_religion)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Importance of Religion Variable", 
+       x = "Importance of Religion", 
+       y = "Count")
+
+p8
+```
+
+```{r}
+p9 <- ggplot(data_clean_cse1, aes(x = denomination_pers)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Personal Denomination Variable", 
+       x = "Personal Denomination", 
+       y = "Count")
+p9
+```
+
+```{r}
+p10 <- ggplot(data_clean_cse1, aes(x = how_often_rel)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Religious Services Attendance Variable", 
+       x = "Religious Services Attendance", 
+       y = "Count")
+p10
+```
+
+```{r}
+p11 <- ggplot(data_clean_cse1, aes(x = education)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Education Variable", 
+       x = "Education", 
+       y = "Count")
+p11
+```
+
+```{r}
+p12 <- ggplot(data_clean_cse1, aes(x = sexism_score)) +
+  geom_histogram(aes(y = after_stat(count / sum(count) * 100)),
+                 fill = "lightblue", color = "black", bins = 7) +
+  geom_text(stat = "bin",
+            aes(label = paste0(round(after_stat(count / sum(count) * 100), 1), "%"),
+                y = after_stat(count / sum(count) * 100)),
+            vjust = -0.5,
+            bins = 7) +
+  theme_minimal() +
+  labs(title = "Distribution of Sexism Score Variable", 
+       x = "Sexism Score", 
+       y = "Percentage")
+p12
+```
+
+```{r}
+p13 <- ggplot(data_clean_cse1, aes(x = marital_status)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Marital Status Variable", 
+       x = "Marital Status", 
+       y = "Count")
+p13
+```
+
+```{r}
+p13 <- ggplot(data_clean_cse1, aes(x = sex)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Sex Variable", 
+       x = "Sex", 
+       y = "Count")
+p13
+```
+
+
+# Distributions of country-level variables
+
+**dividing GDP by 1 million and centering it**
+```{r}
+data_clean_cse2$gdp_ppp_centered <- scale(data_clean_cse2$gdp_ppp / 1000000, center = TRUE, scale = FALSE)
+
+summary(data_clean_cse2$gdp_ppp)
+summary(data_clean_cse2$gdp_ppp_centered)
+```
+
+**GDP**
+```{r}
+p_gdp <- ggplot(data_clean_cse2, aes(x = gdp_ppp_centered)) +
+  geom_histogram(aes(y = after_stat(count)), 
+                 fill = "lightblue", color = "black", bins = 8) +
+  geom_text(stat = "bin",
+            aes(y = after_stat(count),
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")),
+            bins = 8,
+            vjust = -0.5) +
+  theme_minimal() +
+  labs(title = "Distribution of GDP Variable", 
+       x = "GDP", 
+       y = "Count")
+
+p_gdp
+```
+
+<br> <br> 
+
+**Predominant religion**
+```{r}
+p_prr <- ggplot(data_clean_cse1, aes(x = predominant_religion)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Predominant Religion Variable", 
+       x = "Predominant Religion", 
+       y = "Count")
+
+p_prr
+```
+
+<br> <br> 
+
+**Country religiosity**
+```{r}
+p_cr <- ggplot(data_clean_cse2, aes(x = country_religiosity)) +
+  geom_histogram(aes(y = after_stat(count)), 
+                 fill = "lightblue", color = "black", bins = 8) +
+  geom_text(stat = "bin",
+            aes(y = after_stat(count),
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")),
+            bins = 8,
+            vjust = -0.5) +
+  theme_minimal() +
+  labs(title = "Distribution of Country-level Religiosity Variable", 
+       x = "Country-level Religiosity", 
+       y = "Count")
+p_cr
+```
+
+<br> <br> 
+
+**Regime**
+```{r}
+p_reg <- ggplot(data_clean_cse1, aes(x = regime)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of Regime Variable", 
+       x = "Regime", 
+       y = "Count")
+
+p_reg
+```
+
+<br> <br> 
+
+**Gender parity**
+
+```{r}
+p_par <- ggplot(data_clean_cse2, aes(x = gender_parity)) +
+  geom_histogram(aes(y = after_stat(count)), 
+                 fill = "lightblue", color = "black", bins = 8) +
+  geom_text(stat = "bin",
+            aes(y = after_stat(count),
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")),
+            bins = 8,
+            vjust = -0.5) +
+  theme_minimal() +
+  labs(title = "Distribution of Gender Parity Variable", 
+       x = "Gender Parity", 
+       y = "Count")
+
+p_par
+```
+
+<br> <br> 
+
+**CSE**
+```{r}
+p_cse <- ggplot(data_clean_cse1, aes(x = cse)) +
+  geom_bar(aes(y = after_stat(count)), fill = "lightblue", color = "black") +
+  geom_text(aes(y = after_stat(count), 
+                label = paste0(round(after_stat(count / sum(count) * 100), 1), "%")), 
+            stat = "count", 
+            vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Distribution of CSE Variable", 
+       x = "CSE", 
+       y = "Count")
+p_cse
+```
+
+<br> 
+
+```{r}
+row1 <- p1 | p2 | p3
+row2 <- p4 | p5 | p6
+row3 <- p7 | p8 | p9
+row4 <- p10 | p11 | p13
+row5 <- p12
+
+full_plot <- row1 / row2 / row3 / row4 / row5
+
+ggsave("all_distributions_ind.png", plot = full_plot, 
+       width = 18, height = 25, dpi = 300)
+```
+
+```{r}
+row1_1 <- p_gdp | p_prr
+row2_1 <- p_cr | p_reg 
+row3_1 <- p_par | p_cse 
+
+full_plot1 <- row1_1 / row2_1 / row3_1 
+
+ggsave("all_distributions1.png", plot = full_plot1, 
+       width = 16, height = 20, dpi = 300)
+```
+
+<br><br>
+
+# Exploratory Factor Analysis
+
+<br>
+
+**RQ: Do casual sex, prostitution, homosexuality, and abortion form a common dimension of sexual morality based on lay perspectives?**
+
+```{r}
+efadata <- data_clean_cse1 %>%
+  select(homosexuality, abortion, casual_sex, prostitution)
+```
+
+<br>
+
+### Checking data adequacy
+```{r}
+KMO(efadata)
+cortest.bartlett(efadata) #variables are correlated
+```
+
+<br><br>
+
+###  Choosing number of factors
+
+```{r}
+ev <- eigen(cor(efadata))
+ev$values #should be above 1
+nS <- nScree(x=ev$values, model = 'factors')
+plotnScree(nS)
+fa.parallel(efadata, fm = 'ml', fa = 'fa')
+```
+
+<br><br>
+
+Chronbach's alpha for internal consistency
+
+```{r}
+alpha(data_clean_cse1[, c("homosexuality", "abortion", "casual_sex", "prostitution")])
+
+alpha(data_clean_cse2[, c("homosexuality", "abortion", "casual_sex", "prostitution")])
+```
+
+<br><br>
+
+### Finally, factor analysis
+
+```{r}
+dim(efadata)
+fit1 <- fa(efadata, nfactors = 1, n.iter = 100, fm = 'ml', cor = 'spearman', rotate = 'none', scores = "regression")
+fit1
+```
+
+<br><br>
+
+```{r}
+#output1 <- capture.output(print(fit1))
+#png("efa_output1.png", width = 1400, height = 1000, res = 150)
+#grid.newpage()
+
+#grid.text(paste(output1, collapse = "\n"), x = 0, y = 1, just = c("left", "top"), gp = #gpar(fontsize = 8, family = "mono"))
+
+#dev.off()
+```
+
+<br><br>
+
+```{r}
+model <- 'sexual_morality =~ homosexuality + abortion + casual_sex + prostitution'
+
+fit_cfa <- cfa(model, data = efadata, std.lv = TRUE)
+summary(fit_cfa, fit.measures = TRUE, standardized = TRUE)
+```
+
+
+```{r}
+#output <- capture.output(summary(fit_cfa, fit.measures = TRUE, standardized = TRUE))
+
+#png("cfa_full_output.png", width = 1400, height = 2500, res = 150)
+
+#grid.text(paste(output, collapse = "\n"), x = 0, y = 1, just = c("left", "top"))
+#dev.off()
+```
+
+```{r}
+reliability(fit_cfa)
+```
+
+<br>
+
+```{r}
+custom_labels <- c(                
+  "Homosexuality",
+  "Abortion",    
+  "Casual Sex",           
+  "Prostitution", 
+  "Sexual Morality"
+)
+
+semPaths(fit_cfa, what = "std", layout = "tree", 
+         edge.label.cex = 1.5,        
+         label.cex = 1.5,             
+         sizeMan = 12, sizeLat = 14,  
+         color = list(lat = "lightblue", man = "lightgreen"),  
+         style = "lisrel", residuals = FALSE,                   
+         nodeLabels = custom_labels)   
+
+
+png("cfa_visualization_corrected.png", width = 1600, height = 1200, res = 300)
+semPaths(fit_cfa, what = "std", layout = "tree", 
+         edge.label.cex = 1.5,
+         label.cex = 1.5,
+         sizeMan = 12, sizeLat = 14,
+         color = list(lat = "lightblue", man = "lightgreen"),
+         style = "lisrel", residuals = FALSE,
+         nodeLabels = custom_labels)
+dev.off()
+```
+
+<br><br>
+
+```{r}
+loadings <- parameterEstimates(fit)[parameterEstimates(fit)$op == "=~", c("lhs", "rhs", "est")]
+
+ggplot(loadings, aes(x = rhs, y = est)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Factor Loadings for Sexual Morality", x = "Item", y = "Factor Loading") +
+  coord_flip()
+```
+
+
+<br><br>
+
+**merging justifiability variables into a sexual morality measure**
+```{r}
+data_clean_cse1$sexual_morality <- rowMeans(data_clean_cse1[, c("homosexuality", "abortion", "casual_sex", "prostitution")], na.rm = TRUE)
+
+# For the second data set (there was some rows mismatch)
+nrow(data_clean_cse2)  # should be 106122
+morality_vars <- data_clean_cse2[, c("homosexuality", "abortion", "casual_sex", "prostitution")]
+data_clean_cse2$sexual_morality <- rowMeans(morality_vars, na.rm = TRUE)
+```
+
+<br>
+
+## Bivariate tests
+
+<br>
+
+### Correlations 
+
+**correlation for democraticness**
+```{r}
+ks.test(data_clean_cse1$democraticness, "pnorm", mean(data_clean_cse1$democraticness, na.rm=TRUE), sd(data_clean_cse1$democraticness, na.rm=TRUE))
+
+cor.test(data_clean_cse1$sexual_morality, data_clean_cse1$democraticness, use = "complete.obs", method = "kendall")
+
+ggplot(data_clean_cse1, aes(x = democraticness, y = sexual_morality)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Sexual Morality vs Perception of Democraticness", x = "Perception of Democraticness", y = "Sexual Morality")
+```
+
+<br><br>
+
+**Correlation for age**
+```{r}
+ks.test(data_clean_cse1$age, "pnorm", mean(data_clean_cse1$age, na.rm=TRUE), sd(data_clean_cse1$age, na.rm=TRUE))
+
+cor.test(data_clean_cse1$sexual_morality, data_clean_cse1$age, use = "complete.obs", method = "kendall")
+
+ggplot(data_clean_cse1, aes(x = age, y = sexual_morality)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Sexual Morality vs Age", x = "Age", y = "Sexual Morality")
+```
+
+<br><br>
+
+**Correlation for income**
+```{r}
+ks.test(data_clean_cse2$income, "pnorm", mean(data_clean_cse2$income, na.rm=TRUE), sd(data_clean_cse2$income, na.rm=TRUE))
+
+cor.test(data_clean_cse2$sexual_morality, data_clean_cse2$income, use = "complete.obs", method = "kendall")
+
+ggplot(data_clean_cse2, aes(x = income, y = sexual_morality)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Sexual Morality vs Income", x = "Income", y = "Sexual Morality")
+```
+
+<br><br>
+
+**Correlation for sexism score**
+```{r}
+ks.test(data_clean_cse1$sexism_score, "pnorm", mean(data_clean_cse1$sexism_score, na.rm=TRUE), sd(data_clean_cse1$sexism_score, na.rm=TRUE))
+
+cor.test(data_clean_cse1$sexual_morality, data_clean_cse1$sexism_score, use = "complete.obs", method = "kendall")
+
+ggplot(data_clean_cse1, aes(x = sexism_score, y = sexual_morality)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Sexual Morality vs Sexism Score", x = "Sexism Score", y = "Sexual Morality")
+```
+
+<br><br>
+
+**Correlation for GDP**
+```{r}
+ks.test(data_clean_cse2$gdp_ppp_centered, "pnorm", mean(data_clean_cse2$gdp_ppp_centered, na.rm=TRUE), sd(data_clean_cse2$gdp_ppp_centered, na.rm=TRUE))
+
+cor.test(data_clean_cse2$sexual_morality, data_clean_cse2$gdp_ppp, use = "complete.obs", method = "kendall")
+
+ggplot(data_clean_cse2, aes(x = gdp_ppp_centered, y = sexual_morality)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Sexual Morality vs GDP", x = "GDP", y = "Sexual Morality")
+```
+
+<br><br>
+
+**Correlation for country religiosity**
+```{r}
+ks.test(data_clean_cse1$country_religiosity, "pnorm", mean(data_clean_cse1$country_religiosity, na.rm=TRUE), sd(data_clean_cse1$country_religiosity, na.rm=TRUE))
+
+cor.test(data_clean_cse1$sexual_morality, data_clean_cse1$country_religiosity, use = "complete.obs", method = "kendall")
+
+ggplot(data_clean_cse1, aes(x = country_religiosity, y = sexual_morality)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Sexual Morality vs Country Religiosity", x = "Country Religiosity", y = "Sexual Morality")
+```
+
+<br><br>
+
+**Correlation for gender parity**
+```{r}
+ks.test(data_clean_cse1$gender_parity, "pnorm", mean(data_clean_cse1$gender_parity, na.rm=TRUE), sd(data_clean_cse1$gender_parity, na.rm=TRUE))
+
+cor.test(data_clean_cse1$sexual_morality, data_clean_cse1$gender_parity, use = "complete.obs", method = "kendall")
+
+ggplot(data_clean_cse1, aes(x = gender_parity, y = sexual_morality)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Sexual Morality vs Gender Parity", x = "Gender Parity", y = "Sexual Morality")
+```
+
+<br><br>
+
+**T-test with sex**
+```{r, warning = FALSE}
+leveneTest(sexual_morality ~ sex, data = data_clean_cse1)
+
+t.test(sexual_morality ~ sex, data = data_clean_cse1, var.equal = FALSE)
+```
+<br><br>
+
+**Anova for importance of religion**
+
+```{r}
+levene_test <- leveneTest(sexual_morality ~ imp_religion, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ imp_religion, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$imp_religion, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = imp_religion, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across Importance of Religion Levels",
+       x = "Importance of Religion",
+       y = "Sexual Morality")
+```
+
+<br><br>
+
+**Anova for denomination**
+
+```{r}
+levene_test <- leveneTest(sexual_morality ~ denomination_pers, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ denomination_pers, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$denomination_pers, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = denomination_pers, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across Denominations",
+       x = "Denominations",
+       y = "Sexual Morality")
+```
+
+<br><br>
+
+**Anova for education**
+```{r}
+levene_test <- leveneTest(sexual_morality ~ education, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ education, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$education, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = education, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across Education Levels",
+       x = "Education",
+       y = "Sexual Morality")
+```
+
+<br><br>
+
+**Anova for the Frequency of Religious Sevices Attendance**
+```{r}
+levene_test <- leveneTest(sexual_morality ~ how_often_rel, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ how_often_rel, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$how_often_rel, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = how_often_rel, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across the Frequency of Religious Sevices Attendance",
+       x = "Education",
+       y = "Sexual Morality")
+```
+
+<br><br>
+
+**Anova for Marital Status**
+```{r}
+levene_test <- leveneTest(sexual_morality ~ marital_status, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ marital_status, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$marital_status, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = marital_status, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across Marital Status",
+       x = "Marital Status",
+       y = "Sexual Morality")
+```
+
+<br><br>
+
+**Anova for predominant religion**
+```{r}
+levene_test <- leveneTest(sexual_morality ~ predominant_religion, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ predominant_religion, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$predominant_religion, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = predominant_religion, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across Predominant religion",
+       x = "Predominant religion",
+       y = "Sexual Morality")
+```
+
+<br><br>
+
+**Anova for Regime**
+```{r}
+levene_test <- leveneTest(sexual_morality ~ regime, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ regime, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$regime, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = regime, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across Regime",
+       x = "Regime",
+       y = "Sexual Morality")
+```
+
+<br><br>
+
+**Anova for CSE**
+```{r}
+levene_test <- leveneTest(sexual_morality ~ cse, data = data_clean_cse1, center = median)
+print(levene_test)
+
+oneway.test(sexual_morality ~ cse, data = data_clean_cse1, var.equal = FALSE)
+
+pairwise.t.test(data_clean_cse1$sexual_morality, data_clean_cse1$cse, 
+                p.adjust.method = "bonferroni", 
+                pool.sd = FALSE) 
+
+ggplot(data_clean_cse1, aes(x = cse, y = sexual_morality)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Sexual Morality Across CSE Levels",
+       x = "CSE",
+       y = "Sexual Morality")
+```
+<br><br>
+
+# HLM for data without economic factors
+
+<br>
+
+## Null model
+```{r}
+fit <- lm(sexual_morality ~ 1, data=data_clean_cse1)
+```
+
+```{r}
+summary(fit) 
+logLik(fit)
+```
+
+<br><br>
+
+## Null model for the 2 levels
+```{r}
+nullmodel <- lmer(sexual_morality ~ (1 | cntry), data = data_clean_cse1, REML = FALSE) 
+```
+
+```{r}
+summary(nullmodel)
+logLik(nullmodel)
+```
+
+<br>
+
+### ICC
+```{r}
+icc(nullmodel) 
+```
+
+<br><br>
+
+## HLM, only first-level predictors
+```{r}
+mod2.1 <- lmer(sexual_morality~age+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.1)
+
+tab_model(mod2.1, show.std =T)
+```
+
+```{r}
+mod2.2 <- lmer(sexual_morality~age+sex+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.2)
+
+tab_model(mod2.2, show.std =T)
+```
+
+```{r}
+mod2.3 <- lmer(sexual_morality~age+sex+marital_status+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.3)
+
+tab_model(mod2.3, show.std =T)
+```
+
+```{r}
+mod2.4 <- lmer(sexual_morality~age+sex+marital_status+education+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.4)
+
+tab_model(mod2.4, show.std =T)
+```
+
+```{r}
+mod2.5 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.5)
+
+tab_model(mod2.5, show.std =T)
+```
+
+```{r}
+mod2.6 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.6)
+
+tab_model(mod2.6, show.std =T)
+```
+
+```{r}
+mod2.7 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.7)
+
+tab_model(mod2.7, show.std =T)
+```
+
+```{r}
+mod2.8 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.8)
+
+tab_model(mod2.8, show.std =T)
+```
+
+```{r}
+mod2.9 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.9)
+
+tab_model(mod2.9, show.std =T)
+```
+
+```{r}
+tab_model(mod2.1, mod2.2, mod2.3, mod2.4, mod2.5, mod2.6, mod2.7, mod2.8, mod2.9, 
+          show.ci = FALSE,         
+          show.std = TRUE,         
+          dv.labels = c("Model 1", "Model 2", "Model 3", "Model 4", "Model 5", "Model 6", "Model 7", "Model 7", "Model 9"),
+          title = "Comparison of Models")
+```
+
+
+**Mulicollinearity check to make sure**
+```{r}
+mod_multicor <- lm(sexual_morality ~ age + sex + marital_status + education + 
+                  imp_religion + how_often_rel + 
+                  democraticness + denomination_pers+sexism_score+country_religiosity+predominant_religion+gender_parity+regime,
+                data = data_clean_cse1)
+
+# Get VIFs
+vif(mod_multicor)
+```
+
+<br><br>
+
+**Adding 2nd level variables**
+
+<br>
+
+```{r}
+mod2.10 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+predominant_religion+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.10)
+
+tab_model(mod2.10, show.std =T)
+```
+
+
+```{r}
+mod2.11 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+predominant_religion+country_religiosity+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.11)
+
+tab_model(mod2.11, show.std =T)
+```
+
+```{r}
+mod2.12 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+predominant_religion+country_religiosity+gender_parity+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.12)
+
+tab_model(mod2.12, show.std =T)
+```
+
+```{r}
+mod2.13 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+predominant_religion+country_religiosity+gender_parity+regime+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+#summary(mod2.13)
+
+tab_model(mod2.13, show.std =T)
+```
+
+
+```{r}
+tab_model(mod2.9, mod2.10, mod2.11, mod2.12, mod2.13,
+          show.ci = FALSE,         
+          show.std = TRUE,         
+          dv.labels = c("Model 9", "Model 10", "Model 11", "Model 12", "Model 13"), 
+          title = "Comparison of Models")
+```
+
+<br><br>
+
+## FINAL MODEL WITHOUT ECONOMIC FACTORS
+
+```{r}
+m_without <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+predominant_religion+country_religiosity+gender_parity+regime+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+summary(m_without)
+
+#tab_model(m_without, show.std =T)
+plot_model(m_without, type="pred")
+vif(m_without)
+```
+
+```{r}
+terms_order <- c(
+  "age", 
+  "sex", 
+  "marital_status", 
+  "education", 
+  "imp_religion", 
+  "denomination_pers", 
+  "how_often_rel", 
+  "democraticness", 
+  "sexism_score", 
+  "predominant_religion", 
+  "country_religiosity", 
+  "gender_parity", 
+  "regime", 
+  "cse"
+)
+
+plot_list <- lapply(terms_order, function(term) {
+  p <- plot_model(m_without, type = "pred", terms = term)
+  
+  if (is.factor(data_clean_cse1[[term]])) {
+    p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+  
+  return(p)
+})
+
+combined_plot <- wrap_plots(plot_list, ncol = 3)
+ggsave("combined_plot_ORDERED.png", plot = combined_plot, width = 20, height = 25, dpi = 300)
+```
+
+<br><br>
+
+```{r}
+#tab_model(m_without, show.std = TRUE, file = "model_without_table.html")
+#webshot("model_without_table.html", "model_without_table.png", vwidth = 1200, zoom = 2)
+```
+
+<br><br>
+
+```{r}
+anova(mod2.1, mod2.2, mod2.3, mod2.4, mod2.5, mod2.6, mod2.7, mod2.8,mod2.9, mod2.10, mod2.11, mod2.12, mod2.13, m_without)
+```
+
+<br><br>
+
+```{r, warning = FALSE}
+AIC(m_without)
+model_performance(m_without)
+```
+
+<br><br>
+
+# Religion hypotheses
+
+<br>
+
+**Interaction models**
+
+```{r}
+m_rel <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion*country_religiosity+denomination_pers+how_often_rel+democraticness+sexism_score+predominant_religion+gender_parity+regime+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+
+tab_model(m_rel, show.std =T)
+#tab_model(m_rel, show.std = TRUE, file = "m_rel_table.html")
+webshot("m_rel_table.html", "m_rel_table.png", vwidth = 1200, zoom = 2)
+
+interaction_plot_rel <- plot_model(
+  m_rel,
+  type = "int",
+  terms = c("country_religiosity", "importance")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_rel.png",
+      # plot = interaction_plot_rel,
+      # width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_rel)
+```
+
+```{r}
+m_rel1 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel*country_religiosity+democraticness+sexism_score+predominant_religion+gender_parity+regime+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+
+tab_model(m_rel1, show.std =T)
+tab_model(m_rel1, show.std = TRUE, file = "m_rel1_table.html")
+webshot("m_rel1_table.html", "m_rel1_table.png", vwidth = 1200, zoom = 2)
+
+interaction_plot_rel1 <- plot_model(
+  m_rel1,
+  type = "int",
+  terms = c("country_religiosity", "frequency")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_rel1.png",
+      # plot = interaction_plot_rel1,
+      # width = 8, height = 6, dpi = 300)
+```
+```{r}
+anova(m_without, m_rel1)
+```
+
+
+```{r}
+m_rel3 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion*predominant_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+gender_parity+regime+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+
+tab_model(m_rel3, show.std =T)
+
+tab_model(m_rel3, show.std = TRUE, file = "m_rel3_table.html")
+webshot("m_rel3_table.html", "m_rel3_table.png", vwidth = 1200, zoom = 2)
+
+interaction_plot_rel3 <- plot_model(
+  m_rel3,
+  type = "int",
+  terms = c("predominant_religion", "imp_religion")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+ggsave("interaction_plot_rel3.png",
+       plot = interaction_plot_rel3,
+       width = 15, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_rel3)
+```
+
+```{r}
+m_rel4 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel*predominant_religion+democraticness+sexism_score+country_religiosity+predominant_religion+gender_parity+regime+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE) 
+
+tab_model(m_rel4, show.std =T)
+summary(data_clean_cse1$how_often_rel)
+
+tab_model(m_rel4, show.std = TRUE, file = "m_rel4_table.html")
+webshot("m_rel4_table.html", "m_rel4_table.png", vwidth = 1200, zoom = 2)
+
+interaction_plot_rel4 <- plot_model(
+  m_rel4,
+  type = "int",
+  terms = c("predominant_religion", "how_often_rel")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+ggsave("interaction_plot_rel4.png",
+       plot = interaction_plot_rel4,
+       width = 15, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_rel4)
+```
+<br>
+
+# Regime Hypothesis
+
+<br>
+
+**Continuing with exploration:**
+1. interaction
+```{r}
+m_reg <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness*regime+sexism_score+country_religiosity+predominant_religion+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+#tab_model(m_reg, show.std = TRUE)
+
+#tab_model(m_reg, show.std = TRUE, file = "m_reg.html")
+#webshot("m_reg.html", "m_reg.png", vwidth = 1200, zoom = 2)
+
+interaction_plot <- plot_model(
+  m_reg,
+  type = "int",
+  terms = c("democraticness", "regime")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Make x-axis labels diagonal
+
+#ggsave("interaction_plot_democraticness_regime.png",
+      # plot = interaction_plot,
+       #width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_reg)
+```
+
+<br>
+
+# Sexism and gender parity RQ
+
+<br><br>
+
+**Separate models**
+```{r}
+m_abort <- lmer(abortion~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_abort, show.std = TRUE)
+
+#tab_model(m_abort, show.std = TRUE, file = "m_abort.html")
+#webshot("m_abort.html", "m_abort.png", vwidth = 1200, zoom = 2)
+```
+
+
+```{r}
+m_homo <- lmer(homosexuality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_homo, show.std = TRUE)
+
+#tab_model(m_homo, show.std = TRUE, file = "m_homo.html")
+#webshot("m_homo.html", "m_homo.png", vwidth = 1200, zoom = 2)
+```
+
+
+```{r}
+m_cas <- lmer(casual_sex~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_cas, show.std = TRUE)
+
+#tab_model(m_cas, show.std = TRUE, file = "m_cas.html")
+#webshot("m_cas.html", "m_cas.png", vwidth = 1200, zoom = 2)
+```
+
+
+```{r}
+m_prost <- lmer(prostitution~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_prost, show.std = TRUE)
+
+#tab_model(m_prost, show.std = TRUE, file = "m_prost.html")
+#webshot("m_prost.html", "m_prost.png", vwidth = 1200, zoom = 2)
+```
+
+<br><br>
+
+**Interaction between sexism score and sex**
+```{r}
+m_s1 <- lmer(sexual_morality~age+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score*sex+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_s1, show.std = TRUE)
+#tab_model(m_s1, show.std = TRUE, file = "m_s1.html")
+webshot("m_s1.html", "m_s1.png", vwidth = 1200, zoom = 2)
+
+interaction_plot1 <- plot_model(
+  m_s1,
+  type = "int",
+  terms = c("sexism_score", "sex")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_sexism_sex.png",
+      # plot = interaction_plot1,
+      # width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_s1)
+```
+
+<br><br>
+
+**Interaction between gender parity and sex for separate models**
+```{r}
+m_ab_int <- lmer(abortion~age+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity*sex+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_ab_int, show.std = TRUE)
+
+#tab_model(m_ab_int, show.std = TRUE, file = "m_ab_int.html")
+webshot("m_ab_int.html", "m_ab_int.png", vwidth = 1200, zoom = 2)
+
+interaction_plot2 <- plot_model(
+  m_ab_int,
+  type = "int",
+  terms = c("gender_parity", "sex")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_parity1_sex.png",
+      # plot = interaction_plot2,
+      # width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+m_h_int <- lmer(homosexuality~age+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity*sex+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_h_int, show.std = TRUE)
+
+#tab_model(m_h_int, show.std = TRUE, file = "m_h_int.html")
+webshot("m_h_int.html", "m_h_int.png", vwidth = 1200, zoom = 2)
+
+interaction_plot3 <- plot_model(
+  m_h_int,
+  type = "int",
+  terms = c("gender_parity", "sex")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_parity3_sex.png",
+      # plot = interaction_plot3,
+       #width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+m_p_int <- lmer(prostitution~age+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity*sex+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_p_int, show.std = TRUE)
+
+#tab_model(m_p_int, show.std = TRUE, file = "m_p_int.html")
+webshot("m_p_int.html", "m_p_int.png", vwidth = 1200, zoom = 2)
+
+interaction_plot4 <- plot_model(
+  m_p_int,
+  type = "int",
+  terms = c("gender_parity", "sex")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_parity4_sex.png",
+     #  plot = interaction_plot4,
+      # width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+m_c_int <- lmer(casual_sex~age+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity*sex+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+tab_model(m_c_int, show.std = TRUE)
+
+#tab_model(m_c_int, show.std = TRUE, file = "m_c_int.html")
+webshot("m_c_int.html", "m_c_int.png", vwidth = 1200, zoom = 2)
+
+interaction_plot5 <- plot_model(
+  m_c_int,
+  type = "int",
+  terms = c("gender_parity", "sex")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_parity5_sex.png",
+      # plot = interaction_plot5,
+      # width = 8, height = 6, dpi = 300)
+```
+
+<br><br>
+
+# CSE RQ
+
+<br><br>
+
+**Separate models**
+```{r}
+m_a_cse <- lmer(abortion~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_a_cse, show.std = TRUE)
+#tab_model(m_a_cse, show.std = TRUE, file = "m_a_cse.html")
+#webshot("m_a_cse.html", "m_a_cse.png", vwidth = 1200, zoom = 2)
+```
+
+```{r}
+m_p_cse <- lmer(prostitution~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_p_cse, show.std = TRUE)
+#tab_model(m_p_cse, show.std = TRUE, file = "m_p_cse.html")
+#webshot("m_p_cse.html", "m_p_cse.png", vwidth = 1200, zoom = 2)
+```
+
+```{r}
+m_h_cse <- lmer(homosexuality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_h_cse, show.std = TRUE)
+#tab_model(m_h_cse, show.std = TRUE, file = "m_h_cse.html")
+#webshot("m_h_cse.html", "m_h_cse.png", vwidth = 1200, zoom = 2)
+```
+
+```{r}
+m_c_cse <- lmer(casual_sex~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_c_cse, show.std = TRUE)
+#tab_model(m_c_cse, show.std = TRUE, file = "m_c_cse.html")
+#webshot("m_c_cse.html", "m_c_cse.png", vwidth = 1200, zoom = 2)
+```
+
+<br><br>
+
+**Experimenting with interactions**
+```{r}
+m_cse <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity*cse+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_cse, show.std = TRUE)
+#tab_model(m_cse, show.std = TRUE, file = "m_cse.html")
+#webshot("m_cse.html", "m_cse.png", vwidth = 1200, zoom = 2)
+vif(m_cse)
+```
+
+```{r}
+anova(m_without, m_cse)
+```
+
+```{r}
+m_cse1 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime*cse+gender_parity+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_cse1, show.std = TRUE)
+#tab_model(m_cse1, show.std = TRUE, file = "m_cse1.html")
+webshot("m_cse1.html", "m_cse1.png", vwidth = 1200, zoom = 2)
+vif(m_cse1)
+
+interaction_plot6 <- plot_model(
+  m_cse1,
+  type = "int",
+  terms = c("regime", "cse")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_regime_cse.png",
+      # plot = interaction_plot6,
+       #width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_cse1)
+```
+
+```{r}
+m_cse2 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion*cse+regime+gender_parity+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_cse2, show.std = TRUE)
+#tab_model(m_cse2, show.std = TRUE, file = "m_cse2.html")
+webshot("m_cse2.html", "m_cse2.png", vwidth = 1200, zoom = 2)
+vif(m_cse2)
+
+interaction_plot7 <- plot_model(
+  m_cse2,
+  type = "int",
+  terms = c("predominant_religion", "cse")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_rel_cse.png",
+     #  plot = interaction_plot7,
+      # width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_cse2)
+```
+
+```{r}
+m_cse3 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity*cse+predominant_religion+regime+gender_parity+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_cse3, show.std = TRUE)
+#tab_model(m_cse3, show.std = TRUE, file = "m_cse3.html")
+#webshot("m_cse3.html", "m_cse3.png", vwidth = 1200, zoom = 2)
+vif(m_cse3)
+```
+
+```{r}
+anova(m_without, m_cse3)
+```
+
+```{r}
+m_cse4 <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score*cse+country_religiosity+predominant_religion+regime+gender_parity+(1 | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+tab_model(m_cse4, show.std = TRUE)
+#tab_model(m_cse4, show.std = TRUE, file = "m_cse4.html")
+webshot("m_cse4.html", "m_cse4.png", vwidth = 1200, zoom = 2)
+vif(m_cse4)
+
+interaction_plot8 <- plot_model(
+  m_cse4,
+  type = "int",
+  terms = c("sexism_score", "cse")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#ggsave("interaction_plot_sexism_cse.png",
+      # plot = interaction_plot8,
+       #width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+anova(m_without, m_cse4)
+```
+1,2,4
+<br><br>
+
+To explore more, **random effects** were introduced to look at potential between-country variability.
+
+```{r}
+m_imp <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+gender_parity+regime+cse+(1 + imp_religion | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_fr <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+gender_parity+regime+cse+(1 + how_often_rel | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_den <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+gender_parity+regime+cse+(1 + denomination_pers | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_d <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 + democraticness| cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_sex <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 + sex | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_sexism <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 + sexism_score | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_age <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 + age | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_marital <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 + marital_status | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+
+m_edu <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion+regime+gender_parity+cse+(1 + education | cntry), data = data_clean_cse1, REML = FALSE, control = lmerControl(optimizer = "bobyqa")) 
+```
+
+<br>
+
+**Checking all random slopes for significance**
+```{r}
+anova(m_imp,m_fr,m_den, m_d, m_sex, m_sexism, m_age, m_marital, m_edu)
+```
+
+```{r}
+tab_model(m_imp, show.std = TRUE)
+tab_model(m_fr, show.std = TRUE)
+tab_model(m_den, show.std = TRUE)
+```
+
+
+**Importance of religion random effect**
+
+```{r}
+dotplot(ranef(m_imp, condVar=TRUE))
+
+ragg::agg_png("dotplot1.png", width = 1000, height = 1000, res = 150); print(dotplot(ranef(m_imp, condVar=TRUE), scales = list(cex = 0.4), par.strip.text = list(cex = 0.7), strip = strip.custom(factor.levels = gsub("^.*:", "", names(ranef(m_imp)[[1]]))))); dev.off()
+```
+
+<br><br>
+
+**Frequency of religious services attendance random effect**
+```{r}
+dotplot(ranef(m_fr, condVar=TRUE), scales = list(cex = 0.4))
+
+ragg::agg_png("dotplot.png", width = 1000, height = 1200, res = 150); print(dotplot(ranef(m_fr, condVar=TRUE), scales = list(cex = 0.4), par.strip.text = list(cex = 0.7), strip = strip.custom(factor.levels = gsub("^.*:", "", names(ranef(m_fr)[[1]]))))); dev.off()
+```
+
+<br><br>
+
+**Personal denomination random effect**
+
+```{r}
+dotplot(ranef(m_den, condVar=TRUE))
+
+ragg::agg_png("dotplot_den.png", width = 1200, height = 1200, res = 150); print(dotplot(ranef(m_den, condVar=TRUE), scales = list(cex = 0.4), par.strip.text = list(cex = 0.7), strip = strip.custom(factor.levels = gsub("^.*:", "", names(ranef(m_den)[[1]]))))); dev.off()
+```
+
+<br><br>
+
+## FINAL MODEL WITH ECONOMIC FACTORS
+
+```{r}
+m_with <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+income+predominant_religion1+country_religiosity+gender_parity+regime+cse+gdp_ppp_centered+(1 | cntry), data = data_clean_cse2, REML = FALSE) 
+summary(m_with)
+tab_model(m_with, show.std = TRUE)
+#tab_model(m_with, show.std = TRUE, file = "model_with_table.html")
+#webshot("model_with_table.html", "model_with_table.png", vwidth = 1200, zoom = 2)
+
+pred_plots1 <- plot_model(m_with, type = "pred")
+pred_plots1 <- lapply(pred_plots1, function(p) {
+  p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+})
+combined_plot1 <- wrap_plots(pred_plots1)
+#ggsave("combined_plot1.png", plot = combined_plot1, width = 14, height = 20, dpi = 300)
+```
+
+```{r}
+terms_order1 <- c(
+  "age", 
+  "sex", 
+  "marital_status", 
+  "education", 
+  "imp_religion", 
+  "denomination_pers", 
+  "how_often_rel", 
+  "democraticness", 
+  "sexism_score", 
+  "income",
+  "predominant_religion1", 
+  "country_religiosity", 
+  "gender_parity", 
+  "regime", 
+  "cse",
+  "gdp_ppp_centered"
+)
+
+plot_list <- lapply(terms_order1, function(term) {
+  p <- plot_model(m_with, type = "pred", terms = term)
+  
+  if (is.factor(data_clean_cse2[[term]])) {
+    p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+  
+  return(p)
+})
+
+combined_plot <- wrap_plots(plot_list, ncol = 4)
+ggsave("combined_plot_ORDERED1.png", plot = combined_plot, width = 20, height = 25, dpi = 300)
+```
+<br><br>
+
+**multicollinearity check**
+```{r}
+mod_with <- lm(sexual_morality ~ age + sex + marital_status + education + 
+                  imp_religion + how_often_rel + 
+                  democraticness + denomination_pers+sexism_score+income+predominant_religion1+gender_parity+regime+cse+gdp_ppp_z,
+                data = data_clean_cse2)
+
+plot_model(m_with)
+```
+
+```{r, warning = FALSE}
+vif(mod_with)
+AIC(m_with)
+model_performance(m_with)
+```
+
+```{r}
+performance::check_collinearity(m_with)
+performance::check_heteroscedasticity(m_with)
+performance::check_normality(m_with)
+performance::check_outliers(m_with)  
+```
+
+<br><br>
+
+**Interaction**
+
+```{r}
+m_inc <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+country_religiosity+predominant_religion1+gender_parity+regime+cse+gdp_ppp_centered*income+(1 | cntry), data = data_clean_cse2, REML = FALSE) 
+summary(m_inc)
+tab_model(m_inc, show.std = TRUE)
+
+tab_model(m_inc, show.std = TRUE, file = "m_inc.html")
+webshot("m_inc.html", "m_inc.png", vwidth = 1200, zoom = 2)
+```
+
+
+```{r}
+interaction_plot8 <- plot_model(
+  m_inc,
+  type = "int",
+  terms = c("gdp_ppp_centered", "income")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+ggsave("interaction_plot_inc_gdp.png",
+       plot = interaction_plot8,
+       width = 8, height = 6, dpi = 300)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
