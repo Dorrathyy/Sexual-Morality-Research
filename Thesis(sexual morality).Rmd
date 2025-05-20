@@ -407,7 +407,7 @@ summary(data_filtered)
 
 <br><br>
 
-Creating a data set with no income variable (to test economic hypothesis separately with fewer countries). 
+Creating a data set with no income variable (to test economic hypotheses separately with fewer countries). 
 ```{r}
 data_no_income <- data_filtered %>% select(-income)
 data_no_income$cntry <- as.factor(data_no_income$cntry)
@@ -2284,7 +2284,7 @@ anova(m_without, m_rel4)
 ```
 <br>
 
-# Regime Hypothesis
+# Regime Hypotheses
 
 <br>
 
@@ -2674,13 +2674,6 @@ summary(m_with)
 tab_model(m_with, show.std = TRUE)
 #tab_model(m_with, show.std = TRUE, file = "model_with_table.html")
 #webshot("model_with_table.html", "model_with_table.png", vwidth = 1200, zoom = 2)
-
-pred_plots1 <- plot_model(m_with, type = "pred")
-pred_plots1 <- lapply(pred_plots1, function(p) {
-  p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
-})
-combined_plot1 <- wrap_plots(pred_plots1)
-#ggsave("combined_plot1.png", plot = combined_plot1, width = 14, height = 20, dpi = 300)
 ```
 
 ```{r}
@@ -2769,13 +2762,34 @@ ggsave("interaction_plot_inc_gdp.png",
 ```
 
 
+**Interaction between CSE and GDP**
+
+```{r}
+m_cse_gdp <- lmer(sexual_morality~age+sex+marital_status+education+imp_religion+denomination_pers+how_often_rel+democraticness+sexism_score+income+country_religiosity+predominant_religion1+gender_parity+regime+gdp_ppp_centered*cse+(1 | cntry), data = data_clean_cse2, REML = FALSE) 
+summary(m_cse_gdp)
+tab_model(m_cse_gdp, show.std = TRUE)
+
+tab_model(m_cse_gdp, show.std = TRUE, file = "m_cse_gdp.html")
+webshot("m_cse_gdp.html", "m_cse_gdp.png", vwidth = 1200, zoom = 2)
+```
+
+```{r}
+anova(m_with, m_cse_gdp)
+```
 
 
+```{r}
+interaction_plot9 <- plot_model(
+  m_cse_gdp,
+  type = "int",
+  terms = c("gdp_ppp_centered", "cse")
+) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
 
-
-
-
-
+ggsave("interaction_plot_cse_gdp.png",
+       plot = interaction_plot9,
+       width = 8, height = 6, dpi = 300)
+```
 
 
 
